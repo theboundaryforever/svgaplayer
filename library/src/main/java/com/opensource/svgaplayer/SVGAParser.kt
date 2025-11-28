@@ -163,7 +163,7 @@ class SVGAParser(context: Context?) {
         val cacheFile = SVGACache.buildSvgaFile(cacheKey)
 
         memoryCache.get(cacheKey)?.let {
-            logD("Memory cache hit for URL: ${url.toString()}"); callback?.onComplete(it); return null
+            logD("Memory cache hit for URL: ${url.toString()}"); postComplete(it, callback); return null
         }
 
         if (SVGACache.isCached(cacheKey)) {
@@ -214,7 +214,7 @@ class SVGAParser(context: Context?) {
 
         // 1. 内存缓存检查
         memoryCache.get(cacheKey)?.let {
-            logD("Memory cache hit for asset: $assetName"); callback?.onComplete(it); return null
+            logD("Memory cache hit for asset: $assetName"); postComplete(it, callback); return null
         }
 
         // 2. 检查 ZIP 解压后的目录缓存 (Assets 文件的持久缓存)
@@ -248,6 +248,48 @@ class SVGAParser(context: Context?) {
             return null
         }
     }
+
+    /**
+     * 【整合方法】: 从 InputStream 解析 SVGA 文件，已优化为流式处理。
+     * 原方法中的 readAsBytes 逻辑被移除，改为直接将流提交到高性能的 decodeFileFlow。
+     */
+    @JvmOverloads
+    fun decodeFromInputStream(
+        inputStream: InputStream,
+        cacheKey: String,
+        callback: ParseCompletion?,
+        closeInputStream: Boolean = false, // 逻辑上，流会在 decodeFileFlow 内部的 use 块中关闭。
+        playCallback: PlayCallback? = null,
+        alias: String? = null
+    ) {
+        if (mContext == null) {
+            logE("在配置 SVGAParser context 前, 无法解析 SVGA 文件。")
+            return
+        }
+        logD("================ decode $alias from input stream ================")
+
+        // 1. 内存缓存检查
+        memoryCache.get(cacheKey)?.let {
+            logD("Memory cache hit for InputStream key: $cacheKey"); postComplete(it, callback); return
+        }
+
+        // 2. 核心逻辑：将 InputStream 封装并提交
+        // 使用 buffered() 包装流，确保它支持 mark/reset，以启用流式预读和解码，实现低内存消耗。
+        val bufferedStream = if (inputStream.markSupported()) inputStream else inputStream.buffered()
+
+        submitDecodeTask(
+            file = null,
+            inputStream = bufferedStream,
+            cacheKey = cacheKey,
+            callback = callback,
+            playCallback = playCallback,
+            alias = alias,
+            priority = 10 // 默认给高优先级
+        )
+
+        logD("decodeFromInputStream submitted task for alias: $alias")
+    }
+
 
     private fun submitDecodeTask(
         file: File?, inputStream: InputStream?, cacheKey: String,
@@ -423,6 +465,46 @@ class SVGAParser(context: Context?) {
             }
         }
     }
+
+    /**
+     * @deprecated from 2.4.0
+     */
+    @Deprecated("This method has been deprecated from 2.4.0.", ReplaceWith("this.decodeFromAssets(assetsName, callback)"))
+    fun parse(assetsName: String, callback: ParseCompletion?) {
+        this.decodeFromAssets(assetsName, callback, null)
+    }
+
+    /**
+     * @deprecated from 2.4.0
+     */
+    @Deprecated("This method has been deprecated from 2.4.0.", ReplaceWith("this.decodeFromURL(url, callback)"))
+    fun parse(url: URL, callback: ParseCompletion?) {
+        this.decodeFromURL(url, callback, null)
+    }
+
+    /**
+     * @deprecated from 2.4.0
+     */
+    @Deprecated("This method has been deprecated from 2.4.0.", ReplaceWith("this.decodeFromInputStream(inputStream, cacheKey, callback, closeInputStream)"))
+    fun parse(
+        inputStream: InputStream,
+        cacheKey: String,
+        callback: ParseCompletion?,
+        closeInputStream: Boolean = false
+    ) {
+        this.decodeFromInputStream(inputStream, cacheKey, callback, closeInputStream, null)
+    }
+
+    // =======================================================================
+    // 移除的原有辅助函数，以流式处理方式取代其功能
+    // =======================================================================
+    /*
+    private fun readAsBytes(inputStream: InputStream): ByteArray? { ... }
+    private fun inflate(byteArray: ByteArray): ByteArray? { ... }
+    private fun invokeCompleteCallback( ... ) { ... } // 被 postComplete 取代
+    private fun invokeErrorCallback( ... ) { ... }   // 被 postError 取代
+    // decodeFromCacheKey 逻辑被移动和优化到 decodeFromDisk 中
+    */
 
     private fun logD(msg: String) { Log.d("SVGAParser D"," $msg") }
     private fun logE(msg: String) { Log.d("SVGAParser E", "$msg") }

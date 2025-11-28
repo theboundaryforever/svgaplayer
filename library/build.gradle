@@ -22,6 +22,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    // 仅在 Kotlin 项目中需要
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
     packagingOptions {
         exclude 'META-INF/ASL2.0'
         exclude 'META-INF/LICENSE'
