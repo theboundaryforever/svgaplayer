@@ -476,7 +476,7 @@ class SVGAParser(context: Context?) {
     private fun readAsBytes(inputStream: InputStream): ByteArray? {
         ByteArrayOutputStream().use { byteArrayOutputStream ->
             val byteArray = ByteArray(2048)
-            val maxSize = 7 * 1024 * 1024 // 70MB
+            val maxSize = 70 * 1024 * 1024 // 70MB
             var totalBytes = 0
 
             while (true) {
