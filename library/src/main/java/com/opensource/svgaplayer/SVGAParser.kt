@@ -476,14 +476,29 @@ class SVGAParser(context: Context?) {
     private fun readAsBytes(inputStream: InputStream): ByteArray? {
         ByteArrayOutputStream().use { byteArrayOutputStream ->
             val byteArray = ByteArray(2048)
+            val maxSize = 7 * 1024 * 1024 // 70MB
+            var totalBytes = 0
+
             while (true) {
                 val count = inputStream.read(byteArray, 0, 2048)
                 if (count <= 0) {
                     break
                 } else {
+                    // 检查是否超过70MB限制
+                    if (totalBytes + count > maxSize) {
+                        // 可以选择记录日志或抛出异常
+                        LogUtils.warn(TAG, "File exceeds 70MB limit, stopping read")
+                        break
+                    }
+
                     byteArrayOutputStream.write(byteArray, 0, count)
+                    totalBytes += count
                 }
             }
+
+            // 可选：记录实际读取的大小
+            LogUtils.info(TAG, "Read $totalBytes bytes (${totalBytes / (1024.0 * 1024.0)} MB)")
+
             return byteArrayOutputStream.toByteArray()
         }
     }
