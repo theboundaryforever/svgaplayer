@@ -430,5 +430,13 @@ class SVGAParser(context: Context?) {
 
 // 优化 SVGAVideoEntity 内存估算
 fun SVGAVideoEntity.estimateSize(): Int = try {
-    (width * height * 4 * frames).coerceAtLeast(1024 * 1024)
-} catch (_: Exception) { 1024 * 1024 }
+    // 修正公式：只估算一帧的渲染大小，或一个合理的图像资产大小。
+    // 假设最大的图像资产接近一帧的大小
+    val estimatedBytes = width * height * 4
+
+    // 确保最小值为 100KB，避免大批小动画占用 LruCache 预算过多，同时避免公式溢出。
+    estimatedBytes.coerceAtLeast(100 * 1024)
+
+} catch (_: Exception) {
+    100 * 1024 // 发生异常时，默认估算 100KB
+}
