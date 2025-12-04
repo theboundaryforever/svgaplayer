@@ -4,10 +4,10 @@ apply plugin: 'kotlin-android'
 
 android {
     namespace 'com.opensource.svgaplayer'
-    compileSdkVersion 28
+    compileSdkVersion 35
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 28
+        targetSdkVersion 35
     }
     compileOptions {
         kotlinOptions.freeCompilerArgs += ['-module-name', "com.opensource.svgaplayer"]
