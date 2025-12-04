@@ -2,11 +2,12 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 28
+    namespace 'com.example.ponycui_home.svgaplayer'
+    compileSdkVersion 35
     defaultConfig {
         applicationId "com.example.ponycui_home.svgaplayer"
         minSdkVersion 14
-        targetSdkVersion 28
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
     }
